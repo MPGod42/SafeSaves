@@ -1,4 +1,4 @@
-# SafeSaves  
+# SafeSaves - Hytale early plugin
 
 <p align="center"> <img src="assets/SafeSaves.png" alt="SafeSaves logo" width="240"/> </p>
 

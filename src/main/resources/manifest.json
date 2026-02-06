@@ -1,0 +1,9 @@
+{
+  "Group": "com.hypixel.hytale.plugin.early",
+  "Name": "SafeSaves",
+  "Version": "1.0.0",
+  "Description": "Safe, atomic writes for JSON save files to prevent data corruption during interrupted writes",
+  "Authors": [{"Name": "MPGod42"}],
+  "Main": "com.hypixel.hytale.plugin.early.example.SafeSaveTransformer",
+  "Type": "EARLY_PLUGIN"
+}

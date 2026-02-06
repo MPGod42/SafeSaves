@@ -1,0 +1,111 @@
+plugins {
+    id 'java'
+}
+
+import java.nio.file.Files
+
+group = 'com.hypixel.hytale.plugin.early.example'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // ASM for bytecode manipulation
+    implementation 'org.ow2.asm:asm:9.5'
+    implementation 'org.ow2.asm:asm-commons:9.5'
+    implementation 'org.ow2.asm:asm-tree:9.5'
+    
+    // BSON for document handling
+    implementation 'org.mongodb:bson:4.11.1'
+    
+    // Hytale APIs are provided by the early plugin loader at runtime
+    // ClassTransformer interface comes from com.hypixel.hytale.plugin.early.ClassTransformer
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+// Uses default Maven directory structure:
+// - src/main/java for Java source
+// - src/main/resources for resource files
+
+jar {
+    archiveFileName = 'safe-saves-plugin.jar'
+    manifest {
+        attributes(
+            'Implementation-Title': 'SafeSaves Early Plugin',
+            'Implementation-Version': version
+        )
+    }
+    
+    // Include all compiled classes (including our plugin code)
+    from sourceSets.main.output.classesDirs
+    
+    // Include all runtime dependencies as a fat JAR
+    from(configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) })
+    
+    // Exclude the Hytale stub classes that were only needed for compilation
+    // These will be provided by the game at runtime
+    exclude 'com/hypixel/hytale/server/**'
+    exclude 'com/hypixel/hytale/sneakythrow/**'
+    exclude 'com/hypixel/hytale/plugin/early/ClassTransformer.class'
+    
+    // Exclude any META-INF from dependencies to avoid conflicts
+    exclude 'META-INF/*.RSA'
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/maven/**'
+    
+    includeEmptyDirs = false
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Task to build and copy the JAR to earlyplugins folder (at Hytale UserData)
+task copyToEarlyPlugins {
+    dependsOn build
+    doLast {
+        try {
+            def projectRoot = project.projectDir
+            // The server loads from earlyplugins/ in UserData
+            def pluginsDir = new File(System.getProperty('user.home'), 'AppData/Roaming/Hytale/UserData/earlyplugins')
+            def jarFile = tasks.jar.outputs.files.singleFile
+            
+            println "Project root: " + projectRoot.absolutePath
+            println "JAR file: " + jarFile.absolutePath
+            println "JAR exists: " + jarFile.exists()
+            
+            // Create directory
+            if (!pluginsDir.exists()) {
+                pluginsDir.mkdirs()
+                println "Created directory: " + pluginsDir.absolutePath
+            } else {
+                println "Directory already exists: " + pluginsDir.absolutePath
+            }
+            
+            def destFile = new File(pluginsDir, jarFile.name)
+            println "Destination: " + destFile.absolutePath
+            
+            // Copy file
+            if (jarFile.exists()) {
+                Files.copy(jarFile.toPath(), destFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                println "✓ Successfully copied JAR to: " + pluginsDir.absolutePath
+                println "✓ File: " + destFile.name
+            } else {
+                println "✗ JAR file not found: " + jarFile.absolutePath
+            }
+        } catch (Exception e) {
+            println "✗ Error during copy: " + e.message
+            e.printStackTrace()
+        }
+    }
+}
+
+task cleanBuild {
+    dependsOn clean
+    doLast {
+        println "✓ Clean complete"
+    }
+}
